@@ -1,7 +1,8 @@
 import pygame
+from core.packets.C2SMove import C2SMovePacket
 
 class Player:
-    def __init__(self, x, y):
+    def __init__(self, x, y, game):
         self.texture = pygame.Surface((50, 50))
         self.texture.fill((100, 200, 100))
 
@@ -9,6 +10,7 @@ class Player:
         self.velocity = pygame.Vector2(0, 0)
 
         self.speed = 500
+        self.networkManager = game.networkManager
 
     def update(self, dt):
         self.velocity.xy = (0, 0)
@@ -28,7 +30,9 @@ class Player:
             self.velocity.x *= self.speed * dt
             self.velocity.y *= self.speed * dt
 
-        self.position += self.velocity
+        newPosition = self.position.copy()
+        newPosition += self.velocity
+        self.networkManager.queue_packet(C2SMovePacket(newPosition.x, newPosition.y))
 
     def draw(self):
         screen = pygame.display.get_surface()
