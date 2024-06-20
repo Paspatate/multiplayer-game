@@ -10,16 +10,23 @@ from core.packets.C2SMove import C2SMovePacket
 BUFFER_SIZE = 2048
 
 class NetworkManager:
+    nextid = 0
     def __init__(self) -> None:
         self.upd_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
         self.upd_socket.setblocking(False)
         self.packetQueue = deque()
         self.incoming_packets = []
-        
+        self.network_ids = {}
+                
         settingsFile = open("client_settings.json", "r")
         settings = json.load(settingsFile)
         self.server_addr = settings["server_addr"]
         self.server_port = settings["server_port"]
+
+    def add_to_network_elem(self, elem):
+        NetworkManager.nextid += 1
+        self.network_ids[NetworkManager.nextid] = elem
+        return NetworkManager.nextid
     
     def bind(self, addr, port):
         self.upd_socket.bind((addr, port))
