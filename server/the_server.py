@@ -17,8 +17,8 @@ class Server:
         print("server start")
         while run:
             start_time = time()
-            self.network_manager.handle_con()
             self.network_manager.receive_packet()
+            self.network_manager.handle_con()
 
             self.network_manager.send_all()
             compute_time = time() - start_time

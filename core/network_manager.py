@@ -14,6 +14,8 @@ class NetworkManager:
 
         self.out_packet_queue = deque()
         self.is_binded = is_binded
+
+        self.incoming_packet = dict()
     
     def init(self):
         ADDR = "127.0.0.1"
@@ -23,54 +25,58 @@ class NetworkManager:
             self.listening_socket.bind((ADDR, PORT))
         
 
-    def parse_packet(self, data) -> Packet:
-        packets = []
-        end_of_packets = False
-        start = 0
-        while not end_of_packets:
-            packet_type_value = struct.unpack("!B", data[start:start+1])
-            packet = None
-            p_len = 0
-            match packet_type_value[0]:
-                case AskConPacket.packet_id:
-                    p_len = AskConPacket.packet_length
-                    packet = AskConPacket.deserialize(data[start:start+p_len])
-                case AckConPacket.packet_id:
-                    p_len = AckConPacket.packet_length
-                    packet = AckConPacket.deserialize(data[start:start+p_len])
-            
-            start = start + p_len
-
-            if packet is not None: # packet not identified
-                packets.append(packet)
-            
-            if start == len(data): # no more data to parse
-                end_of_packets = True
-        return packets
+    def parse_packet(self, data: bytes) -> Packet:
+        
+        packet_type_value = struct.unpack("!B", data[0:1])
+        packet = None
+        match packet_type_value[0]:
+            case AskConPacket.packet_id:
+                packet = AskConPacket.deserialize(data)
+            case AckConPacket.packet_id:
+                packet = AckConPacket.deserialize(data)
+        return packet
             
     def handle_con(self):
-        try:
-            data, addr = self.listening_socket.recvfrom(BUFFER_SIZE)
-        except:
-            data = bytes()
-
-        if len(data) == 0:
-            return
-        print("addr: ", addr)
-
-        packets = self.parse_packet(data)
-        for p in packets:
-            if isinstance(p, AskConPacket):
-                self.players_proxy[addr] = PlayerProxy(addr)
-                self.queue_packet(AckConPacket(True))
+        for addr in self.incoming_packet.keys():
+            for packt in self.incoming_packet.get(addr):
+                if isinstance(packt, AskConPacket):
+                    self.players_proxy[addr] = PlayerProxy(addr)
+                    self.queue_packet(AckConPacket(True))
+                    print("added player at address: ", addr)
         
     def queue_packet(self, packet: Packet):
         self.out_packet_queue.appendleft(packet)
     
-    def receive(self) -> list:     
-        return []
+    def receive(self) -> dict[tuple[str, int], list[Packet]]: 
+        raw_packets: dict[tuple, list] = dict()
+
+        while True:
+            try:
+                data, addr = self.listening_socket.recvfrom(BUFFER_SIZE)
+            except:
+                data = bytes()
+                addr = ("", 0)
+            
+            if not data:
+                break
+            
+            if raw_packets.get(addr) is None:
+                raw_packets[addr] = []
+            
+            raw_packets[addr].append(data)
+        
+        packets: dict[tuple, list] = dict()
+        for addr, r_ps in raw_packets.items():
+            for r_p in r_ps:
+                p = self.parse_packet(r_p)
+                if p is not None:
+                    packets[addr] = []
+                    packets[addr].append(p)
+        
+        return packets
     
     def receive_packet(self):
+        self.incoming_packet = dict()
         packets = self.receive()
         if len(packets) > 0:
             self.incoming_packet = packets
@@ -83,4 +89,3 @@ class NetworkManager:
     
     def stop(self):
         self.listening_socket.close()
-        self.connection_socket.close()
