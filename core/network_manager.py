@@ -1,7 +1,7 @@
 import socket
 import struct
 from collections import deque
-from .packets import AskConPacket, AckConPacket
+from .packets import AskConPacket, AckConPacket, DisconnectPacket
 from .packet import Packet
 from .player_proxy import PlayerProxy
 
@@ -34,6 +34,8 @@ class NetworkManager:
                 packet = AskConPacket.deserialize(data)
             case AckConPacket.packet_id:
                 packet = AckConPacket.deserialize(data)
+            case DisconnectPacket.packet_id:
+                packet = DisconnectPacket.deserialize(data)
         return packet
             
     def handle_con(self):
@@ -43,6 +45,10 @@ class NetworkManager:
                     self.players_proxy[addr] = PlayerProxy(addr)
                     self.queue_packet(AckConPacket(True))
                     print("added player at address: ", addr)
+                
+                if isinstance(packt, DisconnectPacket):
+                    self.players_proxy.pop(addr)
+                    print("removed player at addr ", addr, " from the server")
         
     def queue_packet(self, packet: Packet):
         self.out_packet_queue.appendleft(packet)
