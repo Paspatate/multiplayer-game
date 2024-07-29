@@ -8,6 +8,7 @@ from .player_proxy import PlayerProxy
 BUFFER_SIZE = 4096
 
 class NetworkManager:
+    next_net_id = 0
     def __init__(self, is_binded: bool) -> None:
         self.players_proxy = {}
         self.listening_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
@@ -95,3 +96,7 @@ class NetworkManager:
     
     def stop(self):
         self.listening_socket.close()
+    
+    def get_next_net_id(self) -> int:
+        NetworkManager.next_net_id += 1
+        return NetworkManager.next_net_id
