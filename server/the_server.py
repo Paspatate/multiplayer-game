@@ -1,5 +1,5 @@
 from time import time, sleep
-from pygame import Vector2
+from pygame.math import Vector2
 from core.network_manager import NetworkManager
 from core.world import World
 
