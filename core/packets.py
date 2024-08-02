@@ -64,7 +64,7 @@ class SpawnEntityPacket(Packet):
         self.network_id = network_id
     
     def serialize(self) -> bytes:
-        data = struct.pack(SpawnEntityPacket._format, self.entity_type_id,self.network_id)
+        data = struct.pack(SpawnEntityPacket._format, self.packet_id, self.entity_type_id,self.network_id)
         return data
 
     @staticmethod
@@ -86,7 +86,7 @@ class ReplicateEntityPacket(Packet):
         self.y = y
     
     def serialize(self) -> bytes:
-        data = struct.pack(ReplicateEntityPacket._format, self.network_id, self.x, self.y)
+        data = struct.pack(ReplicateEntityPacket._format, self.packet_id, self.network_id, self.x, self.y)
         return data
 
     @staticmethod
